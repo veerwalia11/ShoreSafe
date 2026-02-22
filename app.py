@@ -1,9 +1,8 @@
 from flask import Flask, request, jsonify, render_template
 import geopandas as gpd
-import pandas as pd
 import numpy as np
 import os
-
+import pandas as pd
 # -------------------------------------------------
 # App setup
 # -------------------------------------------------
@@ -12,12 +11,9 @@ app = Flask(__name__)
 # -------------------------------------------------
 # Data paths (WORKS LOCALLY + ON RENDER)
 # -------------------------------------------------
-HERE = os.path.dirname(os.path.abspath(__file__))
-
-BASE_DATA = os.path.join(HERE, "data", "la_erosion")
-
-PRED_PATH = os.path.join(BASE_DATA, "la_erosion_predictions.geojson")
-ZIP_PATH = os.path.join(BASE_DATA, "la_zip_centroids.csv")
+BASE_DATA = os.path.join(os.path.dirname(__file__), "data", "la_erosion")
+PRED_PATH = os.path.join(BASE_DATA, "la_erosion_predictions.csv")
+ZIP_PATH  = os.path.join(BASE_DATA, "la_zip_centroids.csv")
 
 print("BASE_DATA:", BASE_DATA)
 print("PRED_PATH:", PRED_PATH, "exists?", os.path.exists(PRED_PATH))
@@ -27,41 +23,25 @@ print("ZIP_PATH:", ZIP_PATH, "exists?", os.path.exists(ZIP_PATH))
 # Load erosion predictions
 # -------------------------------------------------
 print("📌 Loading prediction dataset...")
-gdf = gpd.read_file(PRED_PATH)
 
-# --- FIX is_land coming in wrong from GeoJSON ---
-if "is_land" in gdf.columns:
-    s = gdf["is_land"]
+df = pd.read_csv(PRED_PATH)
 
-    # If it's already bool, keep it
-    if s.dtype != "bool":
-        # Normalize strings/numbers -> bool
-        s_str = s.astype(str).str.strip().str.lower()
-        gdf["is_land"] = s_str.isin(["true", "1", "t", "yes", "y"])
-    else:
-        gdf["is_land"] = s.astype(bool)
+# force numeric types (your log shows erosion_proba is coming in as object)
+for col in ["lat", "lon", "erosion_proba", "loss_frac", "gain_frac"]:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
-print("Land cells in Flask (after fix):", int(gdf["is_land"].sum()))
-print("Sample is_land values:", gdf["is_land"].head(10).tolist())
+if "erosion_pred" in df.columns:
+    df["erosion_pred"] = pd.to_numeric(df["erosion_pred"], errors="coerce").fillna(0).astype(int)
 
-print("✅ GeoJSON loaded from:", PRED_PATH)
-print("✅ Rows:", len(gdf), "Columns:", list(gdf.columns))
-print("✅ erosion_proba describe:", gdf["erosion_proba"].describe() if "erosion_proba" in gdf.columns else "MISSING")
-print("✅ risk_level counts:", gdf["risk_level"].value_counts().head(10) if "risk_level" in gdf.columns else "MISSING")
-print("Land cells in Flask:", gdf["is_land"].sum())
+if "is_land" in df.columns:
+    df["is_land"] = df["is_land"].astype(bool)
 
-# Ensure lat/lon exist
-if "lat" not in gdf.columns or "lon" not in gdf.columns:
-    centroids = gdf.geometry.centroid
-    gdf["lon"] = centroids.x
-    gdf["lat"] = centroids.y
+df = df.dropna(subset=["lat", "lon"]).reset_index(drop=True)
 
-print("✅ Loaded rows:", len(gdf))
-print("✅ Columns:", list(gdf.columns))
-
-# Strip geometry for fast lookup
-df = pd.DataFrame(gdf.drop(columns="geometry"))
-coords = df[["lat", "lon"]].to_numpy()
+print("✅ CSV loaded from:", PRED_PATH)
+print("✅ Rows:", len(df), "Columns:", list(df.columns))
+print("Land cells in Flask:", int(df["is_land"].sum()) if "is_land" in df.columns else "N/A")
 
 # ---------------------------------------------------
 # Land filter (prevents water-only cells from being used)
@@ -93,13 +73,6 @@ else:
 # -------------------------------------------------
 import numpy as np
 
-# Build once after loading gdf
-# (Put this right after you load gdf in app.py)
-coords = np.column_stack([gdf["lat"].to_numpy(), gdf["lon"].to_numpy()])
-land_mask = gdf.get("is_land", False)
-if not isinstance(land_mask, np.ndarray):
-    land_mask = gdf["is_land"].to_numpy()
-
 def _haversine_m(lat1, lon1, lat2, lon2):
     # lat/lon in degrees, returns meters
     R = 6371000.0
@@ -110,23 +83,29 @@ def _haversine_m(lat1, lon1, lat2, lon2):
     a = np.sin(dphi/2)**2 + np.cos(phi1)*np.cos(phi2)*np.sin(dlmb/2)**2
     return 2 * R * np.arcsin(np.sqrt(a))
 
+import numpy as np
+
 def find_nearest_row(lat: float, lon: float):
-    dlat = coords[:, 0] - lat
-    dlon = coords[:, 1] - lon
+    lat = float(lat)
+    lon = float(lon)
+
+    # compute squared distance to every grid cell
+    dlat = df["lat"].astype(float).to_numpy() - lat
+    dlon = df["lon"].astype(float).to_numpy() - lon
     dist2 = dlat * dlat + dlon * dlon
 
-    # prefer land cells if available
+    # Prefer land cells if column exists
     if "is_land" in df.columns:
         land_mask = df["is_land"].astype(bool).to_numpy()
         if land_mask.any():
             dist2_land = dist2.copy()
-            dist2_land[~land_mask] = float("inf")
-            idx = int(dist2_land.argmin())
-            if dist2_land[idx] != float("inf"):
+            dist2_land[~land_mask] = np.inf
+            idx = int(np.argmin(dist2_land))
+            if np.isfinite(dist2_land[idx]):
                 return df.iloc[idx]
 
-    # fallback
-    idx = int(dist2.argmin())
+    # fallback to absolute nearest
+    idx = int(np.argmin(dist2))
     return df.iloc[idx]
 
 def row_to_payload(row, input_lat=None, input_lon=None, input_zip=None):
