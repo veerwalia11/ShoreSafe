@@ -27,3 +27,23 @@ body {
   padding-bottom: var(--safe-bottom);
   padding-left: var(--safe-left);
 }
+.app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+#map {
+  flex: 1;
+  min-width: 0; /* IMPORTANT: prevents overflow/squish bugs */
+}
+
+.sidebar {
+  width: min(380px, 42vw);
+  min-width: 260px;
+  max-width: 520px;
+  overflow-y: auto;
+  padding: 14px;
+  box-sizing: border-box;
+}
