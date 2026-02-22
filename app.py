@@ -10,18 +10,18 @@ import os
 app = Flask(__name__)
 
 # -------------------------------------------------
-# Data paths
+# Data paths (WORKS LOCALLY + ON RENDER)
 # -------------------------------------------------
-BASE_DATA = os.path.expanduser(
-    "~/Projects/flood-nowcast/data/la_erosion"
-)
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+BASE_DATA = os.path.join(HERE, "data", "la_erosion")
 
 PRED_PATH = os.path.join(BASE_DATA, "la_erosion_predictions.geojson")
-ZIP_PATH  = os.path.join(BASE_DATA, "la_zip_centroids.csv")
+ZIP_PATH = os.path.join(BASE_DATA, "la_zip_centroids.csv")
 
 print("BASE_DATA:", BASE_DATA)
-print("ZIP_PATH:", ZIP_PATH)
-print("ZIP exists?", os.path.exists(ZIP_PATH))
+print("PRED_PATH:", PRED_PATH, "exists?", os.path.exists(PRED_PATH))
+print("ZIP_PATH:", ZIP_PATH, "exists?", os.path.exists(ZIP_PATH))
 
 # -------------------------------------------------
 # Load erosion predictions
