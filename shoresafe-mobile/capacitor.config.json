@@ -1,0 +1,9 @@
+{
+  "appId": "com.veerwalia.shoresafe",
+  "appName": "ShoreSafe",
+  "webDir": "www",
+  "server": {
+    "url": "https://shoresafe.onrender.com",
+    "cleartext": false
+  }
+}

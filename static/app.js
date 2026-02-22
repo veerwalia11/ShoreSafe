@@ -4,6 +4,8 @@
 // 1) Init map
 // ----------------------------
 const map = L.map("map").setView([29.7, -90.2], 7);
+setTimeout(() => map.invalidateSize(), 200);
+window.addEventListener("resize", () => map.invalidateSize());
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,

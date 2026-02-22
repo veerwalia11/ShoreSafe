@@ -8,121 +8,25 @@
   <!-- Leaflet CSS (NO integrity attribute to avoid Safari SRI issues) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-  <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-
-    header {
-      padding: 10px 16px;
-      background: #1f2933;
-      color: #f9fafb;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 18px;
-    }
-
-    #container {
-      display: flex;
-      flex: 1;
-      min-height: 0;
-    }
-
-    /* IMPORTANT: map needs a real height */
-    #map {
-      flex: 2;
-      min-height: 0;
-    }
-
-    #sidebar {
-      flex: 1;
-      padding: 12px;
-      border-left: 1px solid #e5e7eb;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      background: #fff;
-    }
-
-    #result {
-      flex: 1;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      padding: 10px;
-      font-size: 14px;
-      overflow: auto;
-    }
-
-    #zip-form {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    #zip-input {
-      width: 100px;
-      padding: 6px 8px;
-      font-size: 14px;
-    }
-
-    button {
-      padding: 6px 12px;
-      font-size: 14px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      background: #2563eb;
-      color: white;
-    }
-
-    button:hover {
-      background: #1d4ed8;
-    }
-
-    .legend {
-      font-size: 12px;
-      line-height: 1.4;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 6px;
-    }
-
-    .legend-color {
-      width: 14px;
-      height: 14px;
-      border-radius: 3px;
-      border: 1px solid #d1d5db;
-    }
-  </style>
 </head>
 
 <body>
-  <header>
-    <h1>ShoreSafe</h1>
-    <div style="font-size: 12px; opacity: 0.8;">
-      Click on the map or search by ZIP.
-    </div>
-  </header>
 
-  <div id="container">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="brand">ShoreSafe</div>
+    <div class="hint">Click on the map or search by ZIP</div>
+  </div>
+
+  <!-- Main App Layout -->
+  <div class="app">
+
+    <!-- Map -->
     <div id="map"></div>
 
+    <!-- Sidebar -->
     <div id="sidebar">
+
       <form id="zip-form">
         <label for="zip-input"><strong>ZIP:</strong></label>
         <input id="zip-input" type="text" maxlength="5" placeholder="70112" />
@@ -135,30 +39,31 @@
 
       <div class="legend">
         <h3>Risk Levels</h3>
-        <div class="legend">
-          <div class="legend-row">
-            <span class="legend-box" style="background:#1a9850;"></span>
-            <span>low</span>
-          </div>
 
-          <div class="legend-row">
-            <span class="legend-box" style="background:#fc8d59;"></span>
-            <span>moderate</span>
-          </div>
+        <div class="legend-row">
+          <span class="legend-box" style="background:#1a9850;"></span>
+          <span>Low</span>
+        </div>
 
-          <div class="legend-row">
-            <span class="legend-box" style="background:#d73027;"></span>
-            <span>high</span>
-          </div>
+        <div class="legend-row">
+          <span class="legend-box" style="background:#fc8d59;"></span>
+          <span>Moderate</span>
+        </div>
+
+        <div class="legend-row">
+          <span class="legend-box" style="background:#d73027;"></span>
+          <span>High</span>
         </div>
       </div>
+
     </div>
   </div>
 
   <!-- Leaflet JS (NO integrity) -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Your app JS -->
+  <!-- Your App JS -->
   <script src="{{ url_for('static', filename='app.js') }}"></script>
+
 </body>
 </html>
