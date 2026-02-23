@@ -20,42 +20,50 @@ print("PRED_PATH:", PRED_PATH, "exists?", os.path.exists(PRED_PATH))
 print("ZIP_PATH:", ZIP_PATH, "exists?", os.path.exists(ZIP_PATH))
 
 # -------------------------------------------------
-# Load erosion predictions
+# Lazy dataset loading
 # -------------------------------------------------
-print("📌 Loading prediction dataset...")
 
-df = pd.read_csv(PRED_PATH)
+df = None
+coords = None
+land_mask = None
 
-# force numeric types (your log shows erosion_proba is coming in as object)
-for col in ["lat", "lon", "erosion_proba", "loss_frac", "gain_frac"]:
-    if col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
+def load_data():
+    global df, coords, land_mask
 
-if "erosion_pred" in df.columns:
-    df["erosion_pred"] = pd.to_numeric(df["erosion_pred"], errors="coerce").fillna(0).astype(int)
+    if df is None:
+        print("📌 Loading prediction dataset...")
 
-if "is_land" in df.columns:
-    df["is_land"] = df["is_land"].astype(bool)
+        temp_df = pd.read_csv(PRED_PATH)
 
-df = df.dropna(subset=["lat", "lon"]).reset_index(drop=True)
+        for col in ["lat", "lon", "erosion_proba", "loss_frac", "gain_frac"]:
+            if col in temp_df.columns:
+                temp_df[col] = pd.to_numeric(temp_df[col], errors="coerce")
 
-print("✅ CSV loaded from:", PRED_PATH)
-print("✅ Rows:", len(df), "Columns:", list(df.columns))
-print("Land cells in Flask:", int(df["is_land"].sum()) if "is_land" in df.columns else "N/A")
+        if "erosion_pred" in temp_df.columns:
+            temp_df["erosion_pred"] = pd.to_numeric(
+                temp_df["erosion_pred"], errors="coerce"
+            ).fillna(0)
 
-# ---------------------------------------------------
-# Land filter (prevents water-only cells from being used)
-# ---------------------------------------------------
-# A cell is "land-relevant" if it had ANY land-loss/gain signal,
-# or is labeled as land change, or has non-trivial loss/gain fraction.
-LAND_FRAC_EPS = 0.0001  # tweak if needed
+        if "is_land" in temp_df.columns:
+            temp_df["is_land"] = temp_df["is_land"].astype(bool)
 
-df["is_land_cell"] = (
-    (df.get("loss_frac", 0.0) > LAND_FRAC_EPS) |
-    (df.get("gain_frac", 0.0) > LAND_FRAC_EPS) |
-    (df.get("loss_label", 0) == 1) |
-    (df.get("gain_label", 0) == 1)
-)
+        temp_df = temp_df.dropna(subset=["lat", "lon"]).reset_index(drop=True)
+
+        df = temp_df
+
+        LAND_FRAC_EPS = 0.0001
+
+        df["is_land_cell"] = (
+            (df.get("loss_frac", 0.0) > LAND_FRAC_EPS) |
+            (df.get("gain_frac", 0.0) > LAND_FRAC_EPS) |
+            (df.get("loss_label", 0) == 1) |
+            (df.get("gain_label", 0) == 1)
+        )
+
+        coords = df[["lat", "lon"]].to_numpy()
+        land_mask = df["is_land_cell"].to_numpy()
+
+        print("✅ Dataset loaded:", len(df))
 
 # -------------------------------------------------
 # Load ZIP centroids
@@ -186,31 +194,63 @@ def preds():
 
 @app.route("/api/erosion")
 def erosion_point():
+
+    # 🔥 IMPORTANT — ensure dataset is loaded
+    load_data()
+
+    # -------------------------------
+    # Parse lat/lon
+    # -------------------------------
     try:
         lat = float(request.args.get("lat"))
         lon = float(request.args.get("lon"))
-    except:
+    except (TypeError, ValueError):
         return jsonify({"error": "Invalid lat/lon"}), 400
 
+    # -------------------------------
+    # Find nearest grid cell
+    # -------------------------------
     row = find_nearest_row(lat, lon)
 
-    # --- robust land check (supports is_land or is_land_cell, bool or string) ---
+    # -------------------------------
+    # Robust land check
+    # -------------------------------
     land_val = None
+
     if "is_land" in row:
         land_val = row.get("is_land")
     elif "is_land_cell" in row:
         land_val = row.get("is_land_cell")
 
     is_land = False
+
     if isinstance(land_val, (bool, int, float)):
         is_land = bool(land_val)
     elif land_val is not None:
-        is_land = str(land_val).strip().lower() in ["true", "1", "t", "yes", "y"]
+        is_land = str(land_val).strip().lower() in [
+            "true", "1", "t", "yes", "y"
+        ]
 
+    # -------------------------------
+    # If water, return water response
+    # -------------------------------
     if not is_land:
-        return jsonify({"water": True, "message": "This location appears to be open water"}), 200
+        return jsonify({
+            "water": True,
+            "message": "This location appears to be water."
+        })
 
-    return jsonify(row_to_payload(row, input_lat=lat, input_lon=lon, input_zip=None))
+    # -------------------------------
+    # Otherwise return prediction
+    # -------------------------------
+    return jsonify(
+        row_to_payload(
+            row,
+            input_lat=lat,
+            input_lon=lon,
+            input_zip=None
+        )
+    )
 
 @app.route("/api/erosion_zip")
 def erosion_zip():
