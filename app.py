@@ -33,7 +33,25 @@ def load_data():
     if df is None:
         print("📌 Loading prediction dataset...")
 
-        temp_df = pd.read_csv(PRED_PATH)
+        temp_df = pd.read_csv(
+            PRED_PATH,
+            usecols=[
+                "lat", "lon", "erosion_proba",
+                "loss_frac", "gain_frac",
+                "erosion_pred", "risk_level",
+                "is_land"
+            ],
+            dtype={
+                "lat": "float32",
+                "lon": "float32",
+                "erosion_proba": "float32",
+                "loss_frac": "float32",
+                "gain_frac": "float32",
+                "erosion_pred": "int8",
+                "risk_level": "category",
+                "is_land": "bool"
+            }
+        )
 
         for col in ["lat", "lon", "erosion_proba", "loss_frac", "gain_frac"]:
             if col in temp_df.columns:
