@@ -58,32 +58,73 @@ html, body {
 }
 *, *::before, *::after { box-sizing: inherit; }
 
-.topbar {
-  position: fixed;
-  top: 0; left: 0; right: 0;
+header {
+  background: #1f2933;
+  color: #f9fafb;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 12px;
-  padding-top: calc(10px + env(safe-area-inset-top));
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(8px);
-  z-index: 9999;
-  border-bottom: 1px solid #e5e7eb;
+  gap: 12px;
+
+  padding: 10px 16px;
+  padding-left: calc(16px + env(safe-area-inset-left));
+  padding-right: calc(16px + env(safe-area-inset-right));
+}
+
+header h1 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+
+  max-width: 50%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+header div {
+  font-size: 12px;
+  opacity: 0.85;
+
+  max-width: 50%;
+  text-align: right;
+  white-space: normal;
+}
+
+.topbar {
+  background: #1f2933;
+  color: #f9fafb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 10px 16px;
+  padding-left: calc(16px + env(safe-area-inset-left));
+  padding-right: calc(16px + env(safe-area-inset-right));
 }
 
 .brand {
-  font-weight: 800;
+  margin: 0;
   font-size: 18px;
+  line-height: 1.2;
+
+  /* Prevent title from being forced off-screen */
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .hint {
   font-size: 12px;
-  opacity: 0.75;
+  opacity: 0.85;
+
+  /* IMPORTANT so it can shrink/wrap instead of pushing off-screen */
+  max-width: 50%;
   text-align: right;
-  max-width: 55%;
-  line-height: 1.2;
+  white-space: normal;
 }
 
 .app {
@@ -128,4 +169,8 @@ html, body {
   }
 
   #map { height: 58%; }
+}
+
+#zip-input {
+  font-size: 16px;   /* prevents iOS zoom */
 }

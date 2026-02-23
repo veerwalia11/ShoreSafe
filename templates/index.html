@@ -13,10 +13,10 @@
 <body>
 
   <!-- Top Bar -->
-  <div class="topbar">
-    <div class="brand">  ShoreSafe</div>
-    <div class="hint">Click on the map or search by ZIP  </div>
-  </div>
+  <header class="topbar">
+    <h1 class="brand">ShoreSafe</h1>
+    <div class="hint">Click on the map or search by ZIP.</div>
+  </header>
 
   <!-- Main App Layout -->
   <div class="app">
@@ -29,7 +29,14 @@
 
       <form id="zip-form">
         <label for="zip-input"><strong>ZIP:</strong></label>
-        <input id="zip-input" type="text" maxlength="5" placeholder="70112" />
+        <input
+          id="zip-input"
+          type="text"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          maxlength="5"
+          placeholder="70112"
+        />
         <button type="submit">Go</button>
       </form>
 
