@@ -6,7 +6,13 @@ import pandas as pd
 # -------------------------------------------------
 # App setup
 # -------------------------------------------------
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, "templates"),
+    static_folder=os.path.join(BASE_DIR, "static")
+)
 
 # -------------------------------------------------
 # Data paths (WORKS LOCALLY + ON RENDER)
@@ -205,6 +211,10 @@ def row_to_payload(row, input_lat=None, input_lon=None, input_zip=None):
 def home():
     return render_template("index.html")
 
+@app.route("/health")
+def health():
+    return "ok", 200
+
 @app.get("/preds")
 def preds():
     # This returns the GeoJSON file to the browser 
@@ -332,6 +342,4 @@ def preds_file():
 # Main
 # -------------------------------------------------
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(debug=True, port=5001)
